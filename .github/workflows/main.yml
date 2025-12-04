@@ -1,0 +1,55 @@
+name: Build Termux Packages
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # Use the official Termux docker container for reproducible builds
+    container:
+      image: ghcr.io/termux/package-builder:latest
+      options: --privileged
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          path: ./repo
+
+      - name: Checkout Termux Build Scripts
+        uses: actions/checkout@v4
+        with:
+          repository: termux/termux-packages
+          path: ./termux-packages
+
+      - name: Set up Build Environment
+        run: |
+          # Link your repo's packages into the official build system
+          mkdir -p termux-packages/packages
+          cp -r repo/packages/* termux-packages/packages/
+          
+          # Fix permissions often required by the container
+          git config --global --add safe.directory '*'
+
+      - name: Build n8n
+        working-directory: ./termux-packages
+        run: |
+          # Build n8n for aarch64 (standard Android architecture)
+          ./build-package.sh -a aarch64 n8n
+
+      - name: Build code-server
+        working-directory: ./termux-packages
+        run: |
+          # Build code-server for aarch64
+          ./build-package.sh -a aarch64 code-server
+
+      - name: Upload Build Artifacts (.deb files)
+        uses: actions/upload-artifact@v4
+        with:
+          name: termux-debs
+          path: ./termux-packages/debs/*.deb
+
+
