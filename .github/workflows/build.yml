@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/termux/package-builder:latest
+      # strictly required for some build operations
       options: --privileged
 
     steps:
@@ -33,16 +34,12 @@ jobs:
           # Fix git permissions for the container
           git config --global --add safe.directory '*'
 
-      # --- ADD THIS STEP BELOW ---
       - name: Install Dependencies & Setup NDK
         working-directory: ./termux-packages
         run: |
-          # This is critical: It downloads the missing NDK r29
+          # This script downloads the specific NDK version (r29) required by Termux
+          # It automatically places it where the build script expects it.
           ./scripts/setup-android-sdk.sh
-          
-          # Update the API level if needed by the new NDK
-          ./scripts/setup-api-level.sh
-      # ---------------------------
 
       - name: Build n8n
         working-directory: ./termux-packages
@@ -59,3 +56,5 @@ jobs:
         with:
           name: termux-debs
           path: ./termux-packages/debs/*.deb
+
+
